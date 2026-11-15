@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Panel · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div><p class="eyebrow">Panel operativo</p><h1>{{ nombre_restaurante }}</h1></div>
+      <form method="post" action="{{ url_for('personal.logout') }}">
+        {% include "_csrf.html" %}
+        <button class="button button-secondary button-small" type="submit">Cerrar sesión</button>
+      </form>
+    </div>
+  </header>
+  <main class="page" id="contenido">
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
+      <form style="display:flex; gap:8px; flex:1" method="get">
+        <input class="search" style="margin:0" name="q" value="{{ busqueda }}" placeholder="Buscar por número o código">
+        <button class="button button-primary" type="submit">Buscar</button>
+      </form>
+      <a class="button button-primary" href="{{ url_for('personal.nuevo_pedido') }}">Nuevo pedido</a>
+    </div>
+    <form class="card" style="display:flex; gap:8px; margin-top:20px; padding:16px" method="post" action="{{ url_for('personal.confirmar') }}">
+      {% include "_csrf.html" %}
+      <input class="search" style="margin:0" name="codigo" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="Código de 4 dígitos" required>
+      <button class="button button-primary" type="submit">Confirmar</button>
+    </form>
+    <section style="margin-top:28px">
+      <h2>Pendientes</h2>
+      <div class="product-grid">
+        {% for pedido in pendientes %}
+          <a class="card" style="padding:16px; text-decoration:none" href="{{ url_for('personal.detalle', pedido_id=pedido.id) }}">
+            <strong>Pedido #{{ pedido.id }} · {{ pedido.codigo }}</strong>
+            <p class="muted">{{ pedido.tipo }} · {{ pedido.total_cop|cop }}</p>
+          </a>
+        {% else %}<p class="muted">Aún no hay pedidos pendientes.</p>{% endfor %}
+      </div>
+    </section>
+    <div class="product-grid" style="margin-top:28px">
+      {% for estado, pedidos in columnas.items() %}
+        <section>
+          <h2>{{ etiqueta_estado[estado] }}</h2>
+          {% for pedido in pedidos %}
+            <a class="card" style="display:block; padding:16px; margin-top:12px; text-decoration:none" href="{{ url_for('personal.detalle', pedido_id=pedido.id) }}">
+              <strong>#{{ pedido.id }} · {{ pedido.tipo }}</strong>
+              <p class="muted">{{ pedido.total_cop|cop }} · {{ pedido.creado_en|hora_bogota }}</p>
+            </a>
+          {% else %}<p class="muted" style="margin-top:12px">Sin pedidos.</p>{% endfor %}
+        </section>
+      {% endfor %}
+    </div>
+  </main>
+  <script>
+    window.setTimeout(() => window.location.reload(), 5000);
+  </script>
+{% endblock %}

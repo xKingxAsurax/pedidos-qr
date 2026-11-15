@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}No disponible · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page page-narrow" id="contenido">
+    <p class="eyebrow">{{ nombre_restaurante }}</p>
+    <h1 style="margin-top: 12px; font-size: 30px">{{ mensaje or "No encontramos esa página" }}</h1>
+    <p class="muted" style="margin-top: 12px">El QR puede estar mal o la mesa ya no está activa.</p>
+    <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.inicio') }}">Volver al inicio</a>
+  </main>
+{% endblock %}

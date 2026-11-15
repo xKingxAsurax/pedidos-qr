@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block titulo %}{{ lugar }} · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div>
+        <p class="eyebrow">{{ nombre_restaurante }}</p>
+        <h1>{{ lugar }}</h1>
+      </div>
+      <a class="button button-secondary button-small" href="{{ url_for('publico.inicio') }}">Inicio</a>
+    </div>
+  </header>
+
+  <main class="page menu-layout" id="contenido">
+    <section>
+      {% if bloques %}
+        <label class="sr-only" for="buscar-productos">Buscar productos</label>
+        <input id="buscar-productos" class="search" type="search" placeholder="Buscar en el menú" autocomplete="off">
+        <nav class="category-nav" aria-label="Categorías">
+          <a class="chip chip-active" href="#menu">Todo</a>
+          {% for bloque in bloques %}
+            <a class="chip" href="#cat-{{ bloque.categoria.id }}">{{ bloque.categoria.nombre }}</a>
+          {% endfor %}
+        </nav>
+
+        <div id="menu">
+          {% for bloque in bloques %}
+            <section id="cat-{{ bloque.categoria.id }}" class="menu-category" data-category>
+              <h2 style="margin-top: 24px">{{ bloque.categoria.nombre }}</h2>
+              <div class="product-grid">
+                {% for producto in bloque.productos %}
+                  <article class="product-card card" data-product data-name="{{ producto.nombre|lower }}">
+                    <div class="product-image" aria-hidden="true">Foto</div>
+                    <div class="product-content">
+                      <h3>{{ producto.nombre }}</h3>
+                      {% if producto.descripcion %}
+                        <p class="product-description">{{ producto.descripcion }}</p>
+                      {% else %}
+                        <p class="product-description muted">Preparado al momento.</p>
+                      {% endif %}
+                      <div class="product-actions">
+                        <p class="price">{{ producto.precio_cop|cop }}</p>
+                        <form method="post" action="{{ url_for(endpoint_agregar, **url_kwargs) }}">
+                          {% include "_csrf.html" %}
+                          <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                          <input type="hidden" name="cantidad" value="1">
+                          <button class="button button-primary button-small" type="submit">
+                            Agregar<span class="sr-only"> {{ producto.nombre }}</span>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+            </section>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted" style="margin-top: 32px">El menú todavía no tiene productos disponibles.</p>
+      {% endif %}
+    </section>
+
+    <aside id="carrito" class="cart card cart-sticky">
+      <h2>Tu pedido</h2>
+      {% if carrito.lineas %}
+        <ul style="padding: 0; margin: 0">
+          {% for linea in carrito.lineas %}
+            <li class="cart-line" style="list-style: none">
+              <form method="post" action="{{ url_for(endpoint_linea, indice=linea.indice, **url_kwargs) }}">
+                {% include "_csrf.html" %}
+                <div class="cart-line-header">
+                  <div>
+                    <p><strong>{{ linea.nombre }}</strong></p>
+                    {% if linea.disponible %}
+                      <p class="muted">{{ linea.precio_cop|cop }}</p>
+                    {% else %}
+                      <p style="color: var(--error)">Agotado</p>
+                    {% endif %}
+                  </div>
+                  <p><strong>{% if linea.disponible %}{{ linea.subtotal_cop|cop }}{% endif %}</strong></p>
+                </div>
+                <div class="quantity-controls">
+                  <button class="quantity-button" type="submit" name="accion" value="menos" aria-label="Quitar uno de {{ linea.nombre }}">−</button>
+                  <span class="quantity">{{ linea.cantidad }}</span>
+                  <button class="quantity-button" type="submit" name="accion" value="mas" aria-label="Agregar otro de {{ linea.nombre }}">+</button>
+                  <button class="remove" type="submit" name="accion" value="quitar">Quitar</button>
+                </div>
+                <label class="note-label" for="nota-{{ linea.indice }}">Nota para cocina</label>
+                <input id="nota-{{ linea.indice }}" class="note-input" type="text" name="nota" maxlength="200" value="{{ linea.nota }}" placeholder="Sin cebolla, bien cocido…">
+                <button class="link-button" style="margin-top: 8px" type="submit" name="accion" value="nota">Guardar nota</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="cart-total" style="margin-top: 16px; font-size: 19px"><strong>Total</strong><strong>{{ carrito.total_cop|cop }}</strong></p>
+        {% if carrito.puede_enviar %}
+          {% if lugar == "Domicilio" %}
+            <label class="note-label" for="nombre_cliente">Nombre</label>
+            <input id="nombre_cliente" class="note-input" name="nombre_cliente" form="form-enviar" required>
+            <label class="note-label" for="telefono">Teléfono</label>
+            <input id="telefono" class="note-input" name="telefono" form="form-enviar" required>
+            <label class="note-label" for="direccion">Dirección</label>
+            <textarea id="direccion" class="note-input" name="direccion" form="form-enviar" required></textarea>
+          {% endif %}
+          <form id="form-enviar" style="margin-top: 16px" method="post" action="{{ url_for(endpoint_enviar, **url_kwargs) }}">
+            {% include "_csrf.html" %}
+            <button class="button button-primary" style="width: 100%" type="submit">Enviar pedido</button>
+          </form>
+          <p class="muted" style="margin-top: 12px; font-size: 14px">El código vence en {% if lugar == "Domicilio" %}30{% else %}15{% endif %} minutos si caja no lo confirma.</p>
+        {% else %}
+          <p style="margin-top: 16px; color: var(--error)">Quita lo que ya no está disponible para enviar el pedido.</p>
+        {% endif %}
+      {% else %}
+        <p class="muted" style="margin-top: 8px">Aún no has agregado productos.</p>
+      {% endif %}
+    </aside>
+  </main>
+
+  {% if carrito.unidades %}
+    <a href="#carrito" class="mobile-cart">
+      <span>{{ carrito.unidades }} en el pedido</span>
+      <span>{{ carrito.total_cop|cop }} · Ver pedido</span>
+    </a>
+  {% endif %}
+  <script>
+    const search = document.querySelector("#buscar-productos");
+    const products = document.querySelectorAll("[data-product]");
+    search?.addEventListener("input", () => {
+      const query = search.value.trim().toLowerCase();
+      products.forEach((product) => {
+        product.hidden = query && !product.dataset.name.includes(query);
+      });
+    });
+  </script>
+{% endblock %}

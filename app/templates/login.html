@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Acceso del personal · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page page-narrow" id="contenido">
+    <p class="eyebrow">{{ nombre_restaurante }}</p>
+    <h1 style="margin-top: 12px; font-size: 30px">Acceso del personal</h1>
+    <form class="card" style="display: grid; gap: 16px; margin-top: 24px; padding: 24px" method="post">
+      {% include "_csrf.html" %}
+      <label>Correo
+        <input class="search" name="correo" type="email" autocomplete="username" required>
+      </label>
+      <label>Contraseña
+        <div style="display:flex; gap:8px; align-items:center">
+          <input id="password" class="search" style="margin:4px 0 0" name="password" type="password" autocomplete="current-password" required>
+          <button class="button button-secondary button-small" type="button" aria-controls="password" aria-label="Mostrar contraseña" onclick="const input=document.querySelector('#password'); input.type=input.type==='password'?'text':'password'; this.textContent=input.type==='password'?'Mostrar':'Ocultar'">Mostrar</button>
+        </div>
+      </label>
+      <button class="button button-primary" type="submit">Ingresar</button>
+    </form>
+    {% if modo_demo %}
+      <p class="notice"><strong>MODO DEMO:</strong> admin@demo.local / Demo-Admin-2026! · caja@demo.local / Demo-Caja-2026!</p>
+    {% endif %}
+  </main>
+{% endblock %}

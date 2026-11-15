@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}{{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page page-narrow">
+    <section class="hero">
+      <p class="eyebrow">Menú digital</p>
+      <h1>{{ nombre_restaurante }}</h1>
+      <p>En la mesa, el QR abre el menú directo. Esta pantalla sirve para probar la demo sin imprimir los códigos.</p>
+    </section>
+
+    <div class="choice-grid">
+      <a href="{{ url_for('publico.menu_llevar') }}" class="choice-card choice-card-primary card">
+        <h2>Soy cliente · Para llevar</h2>
+        <p>Arma tu pedido y recibe un código para caja.</p>
+      </a>
+      <a href="{{ url_for('publico.menu_domicilio') }}" class="choice-card card">
+        <h2>Domicilio</h2>
+        <p>Arma tu pedido, registra tus datos y envíalo por WhatsApp.</p>
+      </a>
+      <a class="choice-card card" href="{{ url_for('personal.login') }}">
+        <h2>Personal del restaurante</h2>
+        <p>Ingresa al panel de caja o administración.</p>
+      </a>
+    </div>
+
+    {% if mesas %}
+      <h2 style="margin-top: 32px">Mesas de demostración</h2>
+      <ul class="mesa-grid">
+        {% for mesa in mesas %}
+          <li>
+            <a class="mesa card" href="{{ url_for('publico.menu_mesa', numero=mesa.numero) }}">Mesa {{ mesa.numero }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="margin-top: 32px" class="muted">Pide el QR de tu mesa en el restaurante.</p>
+    {% endif %}
+
+    <p class="notice">En mesa y para llevar no pedimos nombre, teléfono ni dirección. El código solo sirve para confirmar el pedido en caja.</p>
+  </main>
+{% endblock %}

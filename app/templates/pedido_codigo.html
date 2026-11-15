@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Código del pedido · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page page-narrow" id="contenido">
+    <p class="eyebrow">{{ nombre_restaurante }}</p>
+    <p class="muted">
+      {% if pedido.tipo == "mesa" and pedido.mesa %}Mesa {{ pedido.mesa.numero }}{% elif pedido.tipo == "llevar" %}Para llevar{% else %}{{ pedido.tipo }}{% endif %}
+      · Pedido {{ pedido.id }}
+    </p>
+
+    {% if pedido.estado == "expirado" %}
+      <h1 style="margin-top: 24px; font-size: 30px">Este pedido venció</h1>
+      <p style="margin-top: 12px" class="muted">No llegó a cocina. Si todavía lo quieres, arma el pedido otra vez y pide un código nuevo.</p>
+      <p class="code card" style="color: var(--muted); text-decoration: line-through">{{ pedido.codigo }}</p>
+    {% elif pedido.estado == "pendiente_confirmacion" %}
+      <h1 style="margin-top: 24px; font-size: 30px">Dile este código en caja</h1>
+      <p id="codigo" class="code card">{{ pedido.codigo }}</p>
+      <button class="button button-secondary" style="margin-top:12px; width:100%" type="button" onclick="navigator.clipboard?.writeText('{{ pedido.codigo }}'); this.textContent='Código copiado'">Copiar código</button>
+      <p id="temporizador" class="muted" style="margin-top:8px; text-align:center" data-expira="{{ pedido.expira_en.strftime('%Y-%m-%dT%H:%M:%S') }}">Calculando tiempo restante…</p>
+      <p style="margin-top: 16px">Vence a las {{ pedido.expira_en|hora_bogota }}. Si nadie lo confirma, se cancela solo y no se prepara.</p>
+      <p class="status">Pendiente de confirmación</p>
+      {% if whatsapp_url %}
+        <a class="button button-primary" style="margin-top:16px; width:100%" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      {% endif %}
+    {% else %}
+      <h1 style="margin-top: 24px; font-size: 30px">{{ etiqueta_estado.get(pedido.estado, pedido.estado) }}</h1>
+      <p class="code">{{ pedido.codigo }}</p>
+    {% endif %}
+
+    <h2 style="margin-top: 40px">Resumen</h2>
+    <div class="summary card">
+    <ul>
+      {% for item in pedido.items %}
+        <li class="py-3">
+          <div class="cart-line-header">
+            <span>{{ item.cantidad }} × {{ item.nombre_snapshot }}</span>
+            <span><strong>{{ (item.precio_snapshot_cop * item.cantidad)|cop }}</strong></span>
+          </div>
+          {% if item.nota %}<p class="mt-1 text-sm text-stone-600">{{ item.nota }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    </div>
+    <p style="margin-top: 16px; text-align: right; font-size: 19px"><strong>Total {{ pedido.total_cop|cop }}</strong></p>
+
+    {% if pedido.tipo == "mesa" and pedido.mesa %}
+      <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.menu_mesa', numero=pedido.mesa.numero) }}">Volver al menú</a>
+    {% else %}
+      <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.menu_llevar') }}">Volver al menú</a>
+    {% endif %}
+  </main>
+  {% if pedido.estado == "pendiente_confirmacion" %}
+    <script>
+      const timer = document.querySelector("#temporizador");
+      const expiresAt = new Date(timer.dataset.expira + "Z").getTime();
+      const updateTimer = () => {
+        const seconds = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+        timer.textContent = seconds ? `Tiempo restante: ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : "El código ya venció. Actualiza la página.";
+      };
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    </script>
+  {% endif %}
+{% endblock %}

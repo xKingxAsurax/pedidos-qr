@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Pedido #{{ pedido.id }} · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page page-narrow" id="contenido">
+    <a class="muted" href="{{ url_for('personal.panel') }}">← Volver al panel</a>
+    <h1 style="margin-top:16px">Pedido #{{ pedido.id }}</h1>
+    <p class="status">{{ etiqueta_estado[pedido.estado] }}</p>
+    <div class="card summary" style="margin-top:20px"><ul>
+      {% for item in pedido.items %}
+        <li><div class="cart-line-header"><span>{{ item.cantidad }} × {{ item.nombre_snapshot }}{% if item.ronda > 1 %} <strong>(AGREGADO)</strong>{% endif %}</span><strong>{{ (item.precio_snapshot_cop * item.cantidad)|cop }}</strong></div>{% if item.nota %}<p class="muted">{{ item.nota }}</p>{% endif %}</li>
+      {% endfor %}
+    </ul></div>
+    <p style="margin-top:16px; text-align:right; font-size:20px"><strong>Total {{ pedido.total_cop|cop }}</strong></p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:20px">
+      {% for siguiente in ["en_preparacion", "listo", "entregado"] %}
+        <form method="post" action="{{ url_for('personal.estado', pedido_id=pedido.id) }}">{% include "_csrf.html" %}<input type="hidden" name="estado" value="{{ siguiente }}"><button class="button button-primary button-small" type="submit">{{ etiqueta_estado[siguiente] }}</button></form>
+      {% endfor %}
+    </div>
+    <form class="card" style="display:grid; gap:12px; margin-top:24px; padding:16px" method="post" action="{{ url_for('personal.agregar', pedido_id=pedido.id) }}">
+      {% include "_csrf.html" %}<h2>Agregar ítems</h2>
+      {% for producto in productos %}<label>{{ producto.nombre }}<input class="search" name="producto_id" type="hidden" value="{{ producto.id }}"><input class="search" name="cantidad" type="number" min="0" max="50" value="0"><input class="search" name="nota" placeholder="Nota"></label>{% endfor %}
+      <button class="button button-primary" type="submit">Agregar ronda</button>
+    </form>
+    {% if usuario_actual.rol in ["admin", "caja"] %}
+      <form style="margin-top:20px" method="post" action="{{ url_for('personal.cancelar', pedido_id=pedido.id) }}">{% include "_csrf.html" %}<input class="search" name="motivo" placeholder="Motivo obligatorio"><button class="button" style="background:var(--error); color:#fff" type="submit">Cancelar pedido</button></form>
+    {% endif %}
+  </main>
+{% endblock %}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#c2431f">
+  <title>{% block titulo %}{{ nombre_restaurante }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% if mensajes %}
+      <div>
+        {% for categoria, texto in mensajes %}
+          <p class="flash {% if categoria == 'error' %}flash-error{% else %}flash-success{% endif %}" role="status">{{ texto }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <div id="contenido">
+    {% block contenido %}{% endblock %}
+  </div>
+</body>
+</html>

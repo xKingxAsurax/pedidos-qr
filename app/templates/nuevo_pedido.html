@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo pedido · {{ nombre_restaurante }}{% endblock %}
+{% block contenido %}
+  <main class="page" id="contenido">
+    <p class="eyebrow">Panel operativo</p>
+    <h1 style="margin-top:12px">Nuevo pedido</h1>
+    <form method="post" style="margin-top:24px">
+      {% include "_csrf.html" %}
+      <div class="card" style="display:grid; gap:16px; padding:20px">
+        <label>Tipo
+          <select class="search" name="tipo" style="margin:4px 0 0" required>
+            <option value="mesa">Mesa</option><option value="llevar">Para llevar</option><option value="domicilio">Domicilio</option>
+          </select>
+        </label>
+        <label>Mesa (si aplica)
+          <select class="search" name="mesa_id" style="margin:4px 0 0">
+            <option value="">Sin mesa</option>{% for mesa in mesas %}<option value="{{ mesa.id }}">Mesa {{ mesa.numero }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Nombre del cliente<input class="search" name="nombre_cliente" style="margin:4px 0 0"></label>
+        <label>Teléfono<input class="search" name="telefono" style="margin:4px 0 0"></label>
+        <label>Dirección<input class="search" name="direccion" style="margin:4px 0 0"></label>
+      </div>
+      <h2 style="margin-top:28px">Productos</h2>
+      <div class="product-grid">
+        {% for categoria in categorias %}{% for producto in categoria.productos if producto.disponible %}
+          <div class="card" style="padding:16px">
+            <strong>{{ producto.nombre }}</strong><p class="muted">{{ producto.precio_cop|cop }}</p>
+            <input type="hidden" name="producto_id" value="{{ producto.id }}">
+            <label>Cantidad<input class="search" name="cantidad" type="number" min="0" max="50" value="0" style="margin:4px 0 0"></label>
+            <label>Nota<input class="search" name="nota" maxlength="200" style="margin:4px 0 0"></label>
+          </div>
+        {% endfor %}{% endfor %}
+      </div>
+      <button class="button button-primary" style="margin-top:24px" type="submit">Crear pedido confirmado</button>
+      <a class="button button-secondary" style="margin-top:24px" href="{{ url_for('personal.panel') }}">Cancelar</a>
+    </form>
+  </main>
+{% endblock %}

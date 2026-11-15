@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR Mesa {{ mesa.numero }} · {{ nombre_restaurante }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+    img { display: block; width: 320px; height: 320px; margin: 24px auto; }
+    button { padding: 12px 24px; font-size: 16px; }
+    @media print { button { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>{{ nombre_restaurante }}</h1>
+  <h2>Mesa {{ mesa.numero }}</h2>
+  <img src="{{ url_for('admin.qr_mesa', mesa_id=mesa.id) }}" alt="Código QR de la mesa {{ mesa.numero }}">
+  <p>Escanea para ver el menú y hacer tu pedido.</p>
+  <p>{{ mesa_url }}</p>
+  <button type="button" onclick="window.print()">Imprimir</button>
+</body>
+</html>
