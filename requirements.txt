@@ -3,4 +3,5 @@ Flask-SQLAlchemy>=3.1,<4
 Flask-WTF>=1.2,<2
 tzdata>=2024.1
 qrcode[pil]>=7.4,<9
+gunicorn>=23,<24
 pytest>=8,<9
