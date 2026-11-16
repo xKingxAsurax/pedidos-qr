@@ -12,9 +12,21 @@ def _uri_sqlite(ruta: Path) -> str:
     return "sqlite:///" + ruta.resolve().as_posix()
 
 
+def _uri_base_datos() -> str:
+    """Usa DATABASE_URL en despliegue y SQLite para desarrollo local/pruebas."""
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if not url:
+        return _uri_sqlite(BASE_DIR / "instance" / "pedidos.db")
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url.removeprefix("postgres://")
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return url
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-cambia-esta-clave")
-    SQLALCHEMY_DATABASE_URI = _uri_sqlite(BASE_DIR / "instance" / "pedidos.db")
+    SQLALCHEMY_DATABASE_URI = _uri_base_datos()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     RESTAURANTE_NOMBRE = os.environ.get("RESTAURANTE_NOMBRE", "Sabores del Patio")
@@ -24,7 +36,9 @@ class Config:
     MAX_INTENTOS_LOGIN = 5
     VENTANA_LOGIN_SEGUNDOS = 60
     WHATSAPP_NUMERO = os.environ.get("WHATSAPP_NUMERO", "")
-    PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "")
+    PUBLIC_BASE_URL = os.environ.get(
+        "PUBLIC_BASE_URL", os.environ.get("RENDER_EXTERNAL_URL", "")
+    )
 
     PEDIDO_EXPIRA_MINUTOS = 15
     PEDIDO_DOMICILIO_EXPIRA_MINUTOS = 30

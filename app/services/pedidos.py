@@ -10,6 +10,7 @@ import secrets
 from datetime import timedelta
 
 from flask import current_app
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.errores import ErrorPedido
@@ -93,12 +94,7 @@ def crear_pedido_cliente_qr(
         raise ErrorPedido("Para domicilio necesitamos nombre, teléfono y dirección.")
 
     ahora = ahora_utc()
-    # SQLite serializa los escritores desde aquí. Así otra solicitud espera,
-    # y al continuar vuelve a consultar los códigos ya reservados.
-    db.session.connection().exec_driver_sql("BEGIN IMMEDIATE")
     expirar_pedidos_vencidos(ahora)
-    _exigir_cupo(ip, dispositivo_id, ahora)
-
     lineas = _congelar_lineas(lineas_entrada)
     minutos = int(
         current_app.config[
@@ -108,6 +104,8 @@ def crear_pedido_cliente_qr(
         ]
     )
     for _ in range(5):
+        _bloquear_generacion_codigo()
+        _exigir_cupo(ip, dispositivo_id, ahora)
         pedido = Pedido(
             tipo=tipo,
             origen=ORIGEN_DOMICILIO_WEB if tipo == "domicilio" else ORIGEN_CLIENTE_QR,
@@ -140,19 +138,30 @@ def crear_pedido_cliente_qr(
             db.session.commit()
             return pedido
         except IntegrityError:
-            # Una solicitud concurrente pudo ganar el mismo código; el índice
-            # lo impide y aquí se vuelve a intentar con otro.
+            # Ante un conflicto inesperado, se reintenta con otra reserva.
             db.session.rollback()
     raise ErrorPedido("No se pudo reservar un código único. Intenta otra vez.")
 
 
+def _bloquear_generacion_codigo() -> None:
+    """Serializa la reserva para mantener únicos los códigos pendientes vigentes."""
+    dialecto = db.session.get_bind().dialect.name
+    if dialecto == "sqlite":
+        # SQLite adquiere el bloqueo de escritura antes de consultar los códigos.
+        db.session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+    elif dialecto == "postgresql":
+        # El bloqueo advisory se comparte entre procesos y servicios con la misma BD.
+        db.session.execute(text("SELECT pg_advisory_xact_lock(:clave)"), {"clave": 74201984})
+    else:
+        raise RuntimeError(f"Motor de base de datos no soportado: {dialecto}")
+
+
 def generar_codigo_unico(ahora=None) -> str:
-    """Código de 4 dígitos libre entre los pendientes que aún no vencen.
+    """Código libre de 4 dígitos entre pendientes que aún no vencen.
 
     0042 y 42 son distintos: el código se guarda como texto para conservar
-    los ceros. Dos pedidos ya expirados sí pueden haber tenido el mismo código.
-    Hay una ventana diminuta si dos celulares piden el mismo código en el
-    mismo instante; en un solo restaurante alcanza con reintentar.
+    los ceros. El bloqueo transaccional serializa la consulta y la reserva.
+    Pedidos expirados o procesados pueden reutilizar su código.
     """
     ahora = ahora or ahora_utc()
     for _ in range(30):
