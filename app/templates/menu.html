@@ -14,19 +14,33 @@
   <main class="page menu-layout">
     <section>
       {% if bloques %}
-        <label class="sr-only" for="buscar-productos">Buscar productos</label>
-        <input id="buscar-productos" class="search" type="search" placeholder="Buscar en el menú" autocomplete="off">
-        <nav class="category-nav" aria-label="Categorías">
-          <a class="chip chip-active" href="#menu">Todo</a>
-          {% for bloque in bloques %}
-            <a class="chip" href="#cat-{{ bloque.categoria.id }}">{{ bloque.categoria.nombre }}</a>
-          {% endfor %}
-        </nav>
+        <div class="menu-controls">
+          <div class="category-picker">
+            <span class="category-picker-icon" aria-hidden="true">✦</span>
+            <div class="category-picker-copy">
+              <p class="eyebrow">Tu antojo, a tu manera</p>
+              <label for="categoria-selector">Explora por categoría</label>
+            </div>
+            <div class="select-shell">
+              <select id="categoria-selector" class="category-select" aria-label="Filtrar menú por categoría">
+                <option value="all">🍽️ Todo el menú</option>
+                {% for bloque in bloques %}
+                  <option value="{{ bloque.categoria.id }}">{{ bloque.categoria.nombre }}</option>
+                {% endfor %}
+              </select>
+              <span class="select-chevron" aria-hidden="true">⌄</span>
+            </div>
+          </div>
+
+          <label class="sr-only" for="buscar-productos">Buscar productos</label>
+          <input id="buscar-productos" class="search" type="search" placeholder="Busca algo rico…" autocomplete="off">
+          <p id="menu-results" class="menu-results" aria-live="polite"></p>
+        </div>
 
         <div id="menu">
           {% for bloque in bloques %}
-            <section id="cat-{{ bloque.categoria.id }}" class="menu-category" data-category>
-              <h2 style="margin-top: 24px">{{ bloque.categoria.nombre }}</h2>
+            <section id="cat-{{ bloque.categoria.id }}" class="menu-category" data-category data-category-id="{{ bloque.categoria.id }}">
+              <h2>{{ bloque.categoria.nombre }}</h2>
               <div class="product-grid">
                 {% for producto in bloque.productos %}
                   <article class="product-card card" data-product data-name="{{ producto.nombre|lower }}">
@@ -56,6 +70,7 @@
             </section>
           {% endfor %}
         </div>
+        <p id="menu-empty" class="menu-empty" hidden>No encontramos productos con esa búsqueda en esta categoría. Prueba con otra palabra o elige otra sección.</p>
       {% else %}
         <p class="muted" style="margin-top: 32px">El menú todavía no tiene productos disponibles.</p>
       {% endif %}
@@ -125,12 +140,36 @@
   {% endif %}
   <script>
     const search = document.querySelector("#buscar-productos");
-    const products = document.querySelectorAll("[data-product]");
-    search?.addEventListener("input", () => {
+    const categoryPicker = document.querySelector("#categoria-selector");
+    const categories = document.querySelectorAll("[data-category]");
+    const emptyState = document.querySelector("#menu-empty");
+    const resultsLabel = document.querySelector("#menu-results");
+
+    const filterMenu = () => {
       const query = search.value.trim().toLowerCase();
-      products.forEach((product) => {
-        product.hidden = query && !product.dataset.name.includes(query);
+      const selectedCategory = categoryPicker.value;
+      let visibleCount = 0;
+
+      categories.forEach((category) => {
+        let categoryCount = 0;
+        const isSelected = selectedCategory === "all" || category.dataset.categoryId === selectedCategory;
+        category.querySelectorAll("[data-product]").forEach((product) => {
+          const matches = isSelected && (!query || product.dataset.name.includes(query));
+          product.hidden = !matches;
+          if (matches) categoryCount += 1;
+        });
+        category.hidden = !isSelected || categoryCount === 0;
+        visibleCount += categoryCount;
       });
-    });
+
+      emptyState.hidden = visibleCount > 0;
+      resultsLabel.textContent = visibleCount === 1
+        ? "1 opción para disfrutar"
+        : `${visibleCount} opciones para disfrutar`;
+    };
+
+    search?.addEventListener("input", filterMenu);
+    categoryPicker?.addEventListener("change", filterMenu);
+    if (search && categoryPicker) filterMenu();
   </script>
 {% endblock %}
