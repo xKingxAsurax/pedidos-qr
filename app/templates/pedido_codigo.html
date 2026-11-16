@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Código del pedido · {{ nombre_restaurante }}{% endblock %}
 {% block contenido %}
-  <main class="page page-narrow" id="contenido">
+  <main class="page page-narrow">
     <p class="eyebrow">{{ nombre_restaurante }}</p>
     <p class="muted">
       {% if pedido.tipo == "mesa" and pedido.mesa %}Mesa {{ pedido.mesa.numero }}{% elif pedido.tipo == "llevar" %}Para llevar{% else %}{{ pedido.tipo }}{% endif %}

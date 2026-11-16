@@ -1,5 +1,7 @@
 """Datos para probar el menú y para la base vacía del piloto."""
 
+import os
+
 from app.extensions import db
 from app.models import Categoria, Mesa, Producto, Usuario
 from werkzeug.security import generate_password_hash
@@ -44,9 +46,13 @@ MENU_DEMO = (
 
 def cargar_demo() -> None:
     """Carga el menú de ejemplo solo si la base todavía no tiene categorías."""
+    modo_demo = os.environ.get("MODO_DEMO", "1") == "1"
     if Categoria.query.first() is not None:
         if Usuario.query.first() is None:
-            _crear_usuarios_demo()
+            if modo_demo:
+                _crear_usuarios_demo()
+        _crear_admin_configurado()
+        if db.session.new:
             db.session.commit()
         return
     for nombre, orden, productos in MENU_DEMO:
@@ -65,7 +71,9 @@ def cargar_demo() -> None:
             )
     for numero in range(1, 9):
         db.session.add(Mesa(numero=numero, activa=True))
-    _crear_usuarios_demo()
+    if modo_demo:
+        _crear_usuarios_demo()
+    _crear_admin_configurado()
     db.session.commit()
 
 
@@ -83,6 +91,20 @@ def _crear_usuarios_demo() -> None:
                 rol=rol,
             )
         )
+
+
+def _crear_admin_configurado() -> None:
+    correo = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    password = os.environ.get("ADMIN_PASSWORD", "")
+    if not correo or not password or Usuario.query.filter_by(usuario=correo).first() is not None:
+        return
+    db.session.add(
+        Usuario(
+            usuario=correo,
+            password_hash=generate_password_hash(password),
+            rol="admin",
+        )
+    )
 
 
 def sembrar_prueba() -> None:

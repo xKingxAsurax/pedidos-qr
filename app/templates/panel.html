@@ -10,7 +10,7 @@
       </form>
     </div>
   </header>
-  <main class="page" id="contenido">
+  <main class="page">
     <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
       <form style="display:flex; gap:8px; flex:1" method="get">
         <input class="search" style="margin:0" name="q" value="{{ busqueda }}" placeholder="Buscar por número o código">
@@ -49,6 +49,10 @@
     </div>
   </main>
   <script>
-    window.setTimeout(() => window.location.reload(), 5000);
+    window.setTimeout(() => {
+      if (!document.activeElement || document.activeElement.name !== "codigo") {
+        window.location.reload();
+      }
+    }, 5000);
   </script>
 {% endblock %}

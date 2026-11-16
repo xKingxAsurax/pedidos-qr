@@ -13,6 +13,7 @@ from app.models import (
     ESTADO_EN_PREPARACION,
     ESTADO_LISTO,
     ESTADO_PENDIENTE,
+    ESTADOS_EN_COCINA,
     ORIGEN_CAJA,
     ORIGEN_MESERO,
     Pedido,
@@ -28,8 +29,8 @@ from app.services.pedidos import puede_confirmar
 from app.tiempo import ahora_utc
 
 TRANSICIONES = {
-    ESTADO_CONFIRMADO: {ESTADO_EN_PREPARACION, ESTADO_CANCELADO},
-    ESTADO_EN_PREPARACION: {ESTADO_LISTO, ESTADO_CANCELADO},
+    ESTADO_CONFIRMADO: {ESTADO_EN_PREPARACION},
+    ESTADO_EN_PREPARACION: {ESTADO_LISTO},
     ESTADO_LISTO: {ESTADO_ENTREGADO},
 }
 
@@ -44,11 +45,20 @@ def buscar_pedidos(consulta: str = "") -> list[Pedido]:
                 cast(Pedido.id, String) == consulta,
             )
         )
-    return query.limit(100).all()
+    else:
+        query = query.filter(
+            Pedido.estado.in_((ESTADO_PENDIENTE, *ESTADOS_EN_COCINA))
+        )
+    return query.all()
 
 
 def confirmar_por_codigo(codigo: str, usuario: Usuario) -> Pedido:
-    pedido = Pedido.query.filter_by(codigo=codigo.strip()).first()
+    ahora = ahora_utc()
+    pedido = Pedido.query.filter(
+        Pedido.codigo == codigo.strip(),
+        Pedido.estado == ESTADO_PENDIENTE,
+        Pedido.expira_en > ahora,
+    ).first()
     if pedido is None or not puede_confirmar(pedido):
         raise ErrorPedido("El pedido no existe, venció o ya fue procesado.")
     pedido.estado = ESTADO_CONFIRMADO

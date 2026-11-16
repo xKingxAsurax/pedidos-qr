@@ -76,7 +76,7 @@ def create_app(config_object=None) -> Flask:
         )
 
     if not app.config.get("TESTING") and app.config["SECRET_KEY"] == "dev-cambia-esta-clave":
-        app.logger.warning("SECRET_KEY de desarrollo. Cámbiala antes de atender clientes reales.")
+        raise RuntimeError("SECRET_KEY de desarrollo no permitida fuera de TESTING.")
 
     @app.cli.command("iniciar-db")
     def iniciar_db():

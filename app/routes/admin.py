@@ -94,7 +94,7 @@ def mesa():
         db.session.add(Mesa(numero=numero, activa=True))
         db.session.commit()
         flash("Mesa creada.", "success")
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, IntegrityError):
         db.session.rollback()
         flash("El número de mesa no es válido o ya existe.", "error")
     return redirect(url_for("admin.gestion"))

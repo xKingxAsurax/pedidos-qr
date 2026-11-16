@@ -52,7 +52,9 @@ def login():
         _intentos.pop(ip, None)
         siguiente = request.args.get("siguiente")
         destino = url_for("admin.gestion") if usuario.rol == "admin" else url_for("personal.panel")
-        return redirect(siguiente or destino)
+        if not siguiente or not siguiente.startswith("/") or siguiente.startswith("//"):
+            siguiente = destino
+        return redirect(siguiente)
     return render_template("login.html")
 
 
@@ -109,7 +111,7 @@ def nuevo_pedido():
             lineas = [
                 {"producto_id": pid, "cantidad": cantidad, "nota": nota}
                 for pid, cantidad, nota in zip(producto_ids, cantidades, notas)
-                if cantidad
+                if _cantidad_informada(cantidad)
             ]
             crear_pedido_personal(
                 tipo=tipo,
@@ -166,13 +168,18 @@ def agregar(pedido_id):
                 request.form.getlist("cantidad"),
                 request.form.getlist("nota"),
             )
-            if cantidad
+            if _cantidad_informada(cantidad)
         ]
         agregar_items(pedido, lineas, g.usuario)
         flash("Ítems agregados como nueva ronda.", "success")
     except (ErrorPedido, ValueError) as exc:
         flash(str(exc), "error")
-    return redirect(url_for("personal.detalle", pedido_id=pedido.id))
+    ancla = next(
+        (valor for valor in request.form.getlist("producto_id") if valor.isdigit()),
+        None,
+    )
+    destino = url_for("personal.detalle", pedido_id=pedido.id)
+    return redirect(destino + (f"#producto-{ancla}" if ancla else ""))
 
 
 @bp.post("/pedidos/<int:pedido_id>/items/<int:item_id>/quitar")
@@ -186,3 +193,12 @@ def quitar(pedido_id, item_id):
     except ErrorPedido as exc:
         flash(exc.mensaje, "error")
     return redirect(url_for("personal.detalle", pedido_id=pedido.id))
+
+
+def _cantidad_informada(valor: str) -> bool:
+    if not valor or not valor.strip():
+        return False
+    try:
+        return int(valor) != 0
+    except ValueError:
+        return True

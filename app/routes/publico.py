@@ -208,18 +208,20 @@ def _lugar(tipo: str, mesa: Mesa | None) -> str:
 def _url_menu(tipo: str, mesa: Mesa | None) -> str:
     if tipo == "mesa" and mesa is not None:
         return url_for("publico.menu_mesa", numero=mesa.numero)
+    if tipo == "domicilio":
+        return url_for("publico.menu_domicilio")
     return url_for("publico.menu_llevar")
 
 
 def _urls(tipo: str, mesa: Mesa | None) -> dict:
+    if tipo == "domicilio":
+        return {
+            "endpoint_agregar": "publico.agregar_domicilio",
+            "endpoint_linea": "publico.linea_domicilio",
+            "endpoint_enviar": "publico.enviar_domicilio",
+            "url_kwargs": {},
+        }
     if tipo == "mesa" and mesa is not None:
-        if tipo == "domicilio":
-            return {
-                "endpoint_agregar": "publico.agregar_domicilio",
-                "endpoint_linea": "publico.linea_domicilio",
-                "endpoint_enviar": "publico.enviar_domicilio",
-                "url_kwargs": {},
-            }
         return {
             "endpoint_agregar": "publico.agregar_mesa",
             "endpoint_linea": "publico.linea_mesa",

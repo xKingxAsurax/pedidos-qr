@@ -28,12 +28,9 @@ class Config:
 
     PEDIDO_EXPIRA_MINUTOS = 15
     PEDIDO_DOMICILIO_EXPIRA_MINUTOS = 30
-    # Tope de la especificación: 3 pendientes a la vez.
-    # En la red del restaurante cada celular tiene su propia IP, así que el tope
-    # por IP equivale a un tope por celular. Si más adelante todos salen a
-    # internet con la misma IP, sube solo MAX_PENDIENTES_POR_IP.
+    # El límite por IP puede ajustarse cuando varios clientes comparten una red.
     MAX_PENDIENTES_POR_DISPOSITIVO = 3
-    MAX_PENDIENTES_POR_IP = 3
+    MAX_PENDIENTES_POR_IP = int(os.environ.get("MAX_PENDIENTES_POR_IP", "30"))
     MAX_CANTIDAD_POR_LINEA = 50
     MAX_LINEAS_POR_PEDIDO = 40
 

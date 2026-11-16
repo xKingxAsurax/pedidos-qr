@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Pedido #{{ pedido.id }} · {{ nombre_restaurante }}{% endblock %}
 {% block contenido %}
-  <main class="page page-narrow" id="contenido">
+  <main class="page page-narrow">
     <a class="muted" href="{{ url_for('personal.panel') }}">← Volver al panel</a>
     <h1 style="margin-top:16px">Pedido #{{ pedido.id }}</h1>
     <p class="status">{{ etiqueta_estado[pedido.estado] }}</p>
@@ -18,7 +18,7 @@
     </div>
     <form class="card" style="display:grid; gap:12px; margin-top:24px; padding:16px" method="post" action="{{ url_for('personal.agregar', pedido_id=pedido.id) }}">
       {% include "_csrf.html" %}<h2>Agregar ítems</h2>
-      {% for producto in productos %}<label>{{ producto.nombre }}<input class="search" name="producto_id" type="hidden" value="{{ producto.id }}"><input class="search" name="cantidad" type="number" min="0" max="50" value="0"><input class="search" name="nota" placeholder="Nota"></label>{% endfor %}
+      {% for producto in productos %}<label id="producto-{{ producto.id }}">{{ producto.nombre }}<input class="search" name="producto_id" type="hidden" value="{{ producto.id }}"><input class="search" name="cantidad" type="number" min="0" max="50" value="0"><input class="search" name="nota" placeholder="Nota"></label>{% endfor %}
       <button class="button button-primary" type="submit">Agregar ronda</button>
     </form>
     {% if usuario_actual.rol in ["admin", "caja"] %}
