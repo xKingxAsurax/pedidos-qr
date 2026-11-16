@@ -29,7 +29,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _uri_base_datos()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    RESTAURANTE_NOMBRE = os.environ.get("RESTAURANTE_NOMBRE", "Villa Dog")
+    RESTAURANTE_NOMBRE = os.environ.get("RESTAURANTE_NOMBRE", "Restaurante Demo")
     # Activa esta lista solo para una demostración local con MOSTRAR_INDICE_DEMO=1.
     MOSTRAR_INDICE_DEMO = os.environ.get("MOSTRAR_INDICE_DEMO", "0") == "1"
     MODO_DEMO = os.environ.get("MODO_DEMO", "0") == "1"

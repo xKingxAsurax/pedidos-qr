@@ -89,7 +89,7 @@ MENU_ANTERIOR = ("Entradas", "Platos", "Bebidas", "Postres")
 
 
 def cargar_demo(modo_demo: bool | None = None) -> None:
-    """Carga Villa Dog en una base vacía y migra el menú inicial del piloto una vez."""
+    """Carga el menú inicial en una base vacía y migra el menú piloto una vez."""
     if modo_demo is None:
         modo_demo = os.environ.get("MODO_DEMO", "0") == "1"
     if Categoria.query.first() is not None:
