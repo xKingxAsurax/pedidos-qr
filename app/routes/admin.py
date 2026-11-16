@@ -55,22 +55,81 @@ def producto():
     try:
         categoria_id = int(request.form["categoria_id"])
         precio = int(request.form["precio_cop"])
-        if precio < 0:
+        nombre = request.form.get("nombre", "").strip()
+        if precio < 0 or not nombre or db.session.get(Categoria, categoria_id) is None:
             raise ValueError
         db.session.add(
             Producto(
                 categoria_id=categoria_id,
-                nombre=request.form["nombre"].strip()[:120],
-                descripcion=request.form.get("descripcion", "").strip(),
+                nombre=nombre[:120],
+                descripcion=request.form.get("descripcion", "").strip()[:2000],
                 precio_cop=precio,
                 disponible=True,
             )
         )
         db.session.commit()
         flash("Producto creado.", "success")
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, IntegrityError):
         db.session.rollback()
         flash("Revisa nombre, categoría y precio.", "error")
+    return redirect(url_for("admin.gestion"))
+
+
+@bp.post("/producto/<int:producto_id>/editar")
+@requiere_personal("admin")
+def editar_producto(producto_id):
+    producto = db.get_or_404(Producto, producto_id)
+    try:
+        categoria_id = int(request.form["categoria_id"])
+        precio = int(request.form["precio_cop"])
+        nombre = request.form.get("nombre", "").strip()
+        if not nombre or precio < 0 or db.session.get(Categoria, categoria_id) is None:
+            raise ValueError
+        producto.categoria_id = categoria_id
+        producto.nombre = nombre[:120]
+        producto.descripcion = request.form.get("descripcion", "").strip()[:2000]
+        producto.precio_cop = precio
+        db.session.commit()
+        flash("Producto actualizado.", "success")
+    except (KeyError, TypeError, ValueError, IntegrityError):
+        db.session.rollback()
+        flash("Revisa nombre, categoría y precio.", "error")
+    return redirect(url_for("admin.gestion"))
+
+
+@bp.post("/categoria")
+@requiere_personal("admin")
+def categoria():
+    nombre = request.form.get("nombre", "").strip()
+    try:
+        orden = int(request.form.get("orden", "0"))
+        if not nombre:
+            raise ValueError
+        db.session.add(Categoria(nombre=nombre[:80], orden=orden))
+        db.session.commit()
+        flash("Categoría creada.", "success")
+    except (TypeError, ValueError, IntegrityError):
+        db.session.rollback()
+        flash("Escribe un nombre y un orden válido.", "error")
+    return redirect(url_for("admin.gestion"))
+
+
+@bp.post("/categoria/<int:categoria_id>/editar")
+@requiere_personal("admin")
+def editar_categoria(categoria_id):
+    categoria = db.get_or_404(Categoria, categoria_id)
+    nombre = request.form.get("nombre", "").strip()
+    try:
+        orden = int(request.form.get("orden", "0"))
+        if not nombre:
+            raise ValueError
+        categoria.nombre = nombre[:80]
+        categoria.orden = orden
+        db.session.commit()
+        flash("Categoría actualizada.", "success")
+    except (TypeError, ValueError, IntegrityError):
+        db.session.rollback()
+        flash("Escribe un nombre y un orden válido.", "error")
     return redirect(url_for("admin.gestion"))
 
 

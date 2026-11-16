@@ -18,9 +18,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     RESTAURANTE_NOMBRE = os.environ.get("RESTAURANTE_NOMBRE", "Sabores del Patio")
-    # En el piloto local conviene ver las mesas sin imprimir QR. En público, apágalo.
-    MOSTRAR_INDICE_DEMO = os.environ.get("MOSTRAR_INDICE_DEMO", "1") == "1"
-    MODO_DEMO = os.environ.get("MODO_DEMO", "1") == "1"
+    # Activa esta lista solo para una demostración local con MOSTRAR_INDICE_DEMO=1.
+    MOSTRAR_INDICE_DEMO = os.environ.get("MOSTRAR_INDICE_DEMO", "0") == "1"
+    MODO_DEMO = os.environ.get("MODO_DEMO", "0") == "1"
     MAX_INTENTOS_LOGIN = 5
     VENTANA_LOGIN_SEGUNDOS = 60
     WHATSAPP_NUMERO = os.environ.get("WHATSAPP_NUMERO", "")

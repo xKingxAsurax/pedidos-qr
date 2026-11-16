@@ -45,6 +45,8 @@
 
     {% if pedido.tipo == "mesa" and pedido.mesa %}
       <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.menu_mesa', numero=pedido.mesa.numero) }}">Volver al menú</a>
+    {% elif pedido.tipo == "domicilio" %}
+      <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.menu_domicilio') }}">Volver al menú</a>
     {% else %}
       <a class="button button-secondary" style="margin-top: 32px" href="{{ url_for('publico.menu_llevar') }}">Volver al menú</a>
     {% endif %}

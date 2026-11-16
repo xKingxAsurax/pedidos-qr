@@ -12,7 +12,7 @@ app = create_app()
 def preparar_base() -> None:
     with app.app_context():
         db.create_all()
-        cargar_demo()
+        cargar_demo(modo_demo=app.config.get("MODO_DEMO", False))
 
 
 if __name__ == "__main__":

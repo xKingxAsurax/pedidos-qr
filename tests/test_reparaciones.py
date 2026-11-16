@@ -266,14 +266,14 @@ def test_limite_por_ip_se_puede_configurar(monkeypatch):
     assert modulo.Config.MAX_PENDIENTES_POR_IP == 7
 
 
-def test_panel_tiene_un_solo_contenido_y_no_recarga_con_codigo_en_foco(client, app):
+def test_panel_tiene_un_solo_contenido_y_conserva_codigo_al_recargar(client, app):
     with app.app_context():
         _crear_usuario()
     _login(client)
     html = client.get("/admin/").get_data(as_text=True)
     assert html.count('id="contenido"') == 1
-    assert "document.activeElement" in html
-    assert 'name !== "codigo"' in html
+    assert 'sessionStorage.setItem("codigo-pendiente", codigo.value)' in html
+    assert "window.location.reload()" in html
 
 
 def test_agregar_producto_redirige_a_su_ancla(client, app):

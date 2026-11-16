@@ -16,6 +16,7 @@
         <input class="search" style="margin:0" name="q" value="{{ busqueda }}" placeholder="Buscar por número o código">
         <button class="button button-primary" type="submit">Buscar</button>
       </form>
+      <button id="sonido-pedidos" class="button button-secondary" type="button">Activar sonido</button>
       <a class="button button-primary" href="{{ url_for('personal.nuevo_pedido') }}">Nuevo pedido</a>
     </div>
     <form class="card" style="display:flex; gap:8px; margin-top:20px; padding:16px" method="post" action="{{ url_for('personal.confirmar') }}">
@@ -39,7 +40,7 @@
         <section>
           <h2>{{ etiqueta_estado[estado] }}</h2>
           {% for pedido in pedidos %}
-            <a class="card" style="display:block; padding:16px; margin-top:12px; text-decoration:none" href="{{ url_for('personal.detalle', pedido_id=pedido.id) }}">
+            <a class="card" data-pedido-id="{{ pedido.id }}" style="display:block; padding:16px; margin-top:12px; text-decoration:none" href="{{ url_for('personal.detalle', pedido_id=pedido.id) }}">
               <strong>#{{ pedido.id }} · {{ pedido.tipo }}</strong>
               <p class="muted">{{ pedido.total_cop|cop }} · {{ pedido.creado_en|hora_bogota }}</p>
             </a>
@@ -49,10 +50,41 @@
     </div>
   </main>
   <script>
+    const codigo = document.querySelector('[name="codigo"]');
+    const codigoGuardado = sessionStorage.getItem("codigo-pendiente");
+    if (codigo && codigoGuardado !== null) {
+      codigo.value = codigoGuardado;
+      codigo.focus();
+      codigo.setSelectionRange(codigo.value.length, codigo.value.length);
+      sessionStorage.removeItem("codigo-pendiente");
+    }
+
+    const pedidosActuales = [...document.querySelectorAll("[data-pedido-id]")].map((el) => el.dataset.pedidoId);
+    const pedidosAnteriores = JSON.parse(sessionStorage.getItem("pedidos-activos") || "[]");
+    const llegaronPedidos = pedidosAnteriores.length > 0 && pedidosActuales.some((id) => !pedidosAnteriores.includes(id));
+    sessionStorage.setItem("pedidos-activos", JSON.stringify(pedidosActuales));
+    const sonidoActivado = sessionStorage.getItem("sonido-pedidos") === "1";
+    const botonSonido = document.querySelector("#sonido-pedidos");
+    if (botonSonido) botonSonido.textContent = sonidoActivado ? "Sonido activado" : "Activar sonido";
+    botonSonido?.addEventListener("click", async () => {
+      sessionStorage.setItem("sonido-pedidos", sonidoActivado ? "0" : "1");
+      location.reload();
+    });
+    if (llegaronPedidos && sonidoActivado && window.AudioContext) {
+      const contexto = new AudioContext();
+      const oscilador = contexto.createOscillator();
+      const volumen = contexto.createGain();
+      oscilador.frequency.value = 880;
+      volumen.gain.value = 0.12;
+      oscilador.connect(volumen);
+      volumen.connect(contexto.destination);
+      oscilador.start();
+      oscilador.stop(contexto.currentTime + 0.25);
+    }
+
     window.setTimeout(() => {
-      if (!document.activeElement || document.activeElement.name !== "codigo") {
-        window.location.reload();
-      }
+      if (codigo && document.activeElement === codigo) sessionStorage.setItem("codigo-pendiente", codigo.value);
+      window.location.reload();
     }, 5000);
   </script>
 {% endblock %}

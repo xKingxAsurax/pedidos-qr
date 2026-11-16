@@ -10,6 +10,7 @@ import secrets
 from datetime import timedelta
 
 from flask import current_app
+from sqlalchemy.exc import IntegrityError
 
 from app.errores import ErrorPedido
 from app.extensions import db
@@ -92,6 +93,9 @@ def crear_pedido_cliente_qr(
         raise ErrorPedido("Para domicilio necesitamos nombre, teléfono y dirección.")
 
     ahora = ahora_utc()
+    # SQLite serializa los escritores desde aquí. Así otra solicitud espera,
+    # y al continuar vuelve a consultar los códigos ya reservados.
+    db.session.connection().exec_driver_sql("BEGIN IMMEDIATE")
     expirar_pedidos_vencidos(ahora)
     _exigir_cupo(ip, dispositivo_id, ahora)
 
@@ -103,40 +107,43 @@ def crear_pedido_cliente_qr(
             else "PEDIDO_EXPIRA_MINUTOS"
         ]
     )
-    pedido = Pedido(
-        tipo=tipo,
-        origen=ORIGEN_DOMICILIO_WEB if tipo == "domicilio" else ORIGEN_CLIENTE_QR,
-        mesa_id=mesa.id if mesa else None,
-        codigo=generar_codigo_unico(ahora),
-        estado=ESTADO_PENDIENTE,
-        total_cop=sum(linea["precio_cop"] * linea["cantidad"] for linea in lineas),
-        creado_en=ahora,
-        expira_en=ahora + timedelta(minutes=minutos),
-        ip_cliente=ip,
-        dispositivo_id=dispositivo_id,
-        nombre_cliente=nombre_cliente.strip()[:120] or None,
-        telefono=telefono.strip()[:20] or None,
-        direccion=direccion.strip()[:500] or None,
-    )
-    for linea in lineas:
-        pedido.items.append(
-            PedidoItem(
-                producto_id=linea["producto_id"],
-                nombre_snapshot=linea["nombre"],
-                precio_snapshot_cop=linea["precio_cop"],
-                cantidad=linea["cantidad"],
-                nota=linea["nota"],
-                ronda=1,
-                agregado_en=ahora,
-            )
+    for _ in range(5):
+        pedido = Pedido(
+            tipo=tipo,
+            origen=ORIGEN_DOMICILIO_WEB if tipo == "domicilio" else ORIGEN_CLIENTE_QR,
+            mesa_id=mesa.id if mesa else None,
+            codigo=generar_codigo_unico(ahora),
+            estado=ESTADO_PENDIENTE,
+            total_cop=sum(linea["precio_cop"] * linea["cantidad"] for linea in lineas),
+            creado_en=ahora,
+            expira_en=ahora + timedelta(minutes=minutos),
+            ip_cliente=ip,
+            dispositivo_id=dispositivo_id,
+            nombre_cliente=nombre_cliente.strip()[:120] or None,
+            telefono=telefono.strip()[:20] or None,
+            direccion=direccion.strip()[:500] or None,
         )
-    db.session.add(pedido)
-    try:
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
-    return pedido
+        for linea in lineas:
+            pedido.items.append(
+                PedidoItem(
+                    producto_id=linea["producto_id"],
+                    nombre_snapshot=linea["nombre"],
+                    precio_snapshot_cop=linea["precio_cop"],
+                    cantidad=linea["cantidad"],
+                    nota=linea["nota"],
+                    ronda=1,
+                    agregado_en=ahora,
+                )
+            )
+        db.session.add(pedido)
+        try:
+            db.session.commit()
+            return pedido
+        except IntegrityError:
+            # Una solicitud concurrente pudo ganar el mismo código; el índice
+            # lo impide y aquí se vuelve a intentar con otro.
+            db.session.rollback()
+    raise ErrorPedido("No se pudo reservar un código único. Intenta otra vez.")
 
 
 def generar_codigo_unico(ahora=None) -> str:

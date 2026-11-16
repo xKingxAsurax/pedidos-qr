@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from flask import current_app
 from sqlalchemy import String, cast, or_
 
 from app.errores import ErrorPedido
@@ -14,6 +15,7 @@ from app.models import (
     ESTADO_LISTO,
     ESTADO_PENDIENTE,
     ESTADOS_EN_COCINA,
+    Mesa,
     ORIGEN_CAJA,
     ORIGEN_MESERO,
     Pedido,
@@ -82,6 +84,8 @@ def cancelar_pedido(pedido: Pedido, usuario: Usuario, motivo: str) -> None:
         raise ErrorPedido("El motivo es obligatorio.")
     if pedido.estado in {ESTADO_ENTREGADO, ESTADO_CANCELADO}:
         raise ErrorPedido("Este pedido ya no se puede cancelar.")
+    if pedido.estado != ESTADO_PENDIENTE and usuario.rol != "admin":
+        raise ErrorPedido("Solo un administrador puede cancelar un pedido confirmado.")
     pedido.estado = ESTADO_CANCELADO
     _registrar(pedido, usuario, "cancelar", "Pedido cancelado", motivo.strip())
     db.session.commit()
@@ -99,6 +103,10 @@ def crear_pedido_personal(
 ) -> Pedido:
     if tipo not in {TIPO_MESA, TIPO_LLEVAR, TIPO_DOMICILIO}:
         raise ErrorPedido("Tipo de pedido no válido.")
+    if tipo == TIPO_MESA:
+        mesa = db.session.get(Mesa, mesa_id) if mesa_id is not None else None
+        if mesa is None or not mesa.activa:
+            raise ErrorPedido("Selecciona una mesa activa.")
     congeladas = _congelar_lineas(lineas)
     pedido = Pedido(
         tipo=tipo,
@@ -151,6 +159,8 @@ def quitar_item(pedido: Pedido, item: PedidoItem, usuario: Usuario, motivo: str)
 def _congelar_lineas(lineas: list[dict]) -> list[dict]:
     if not lineas:
         raise ErrorPedido("Agrega al menos un producto.")
+    if len(lineas) > int(current_app.config["MAX_LINEAS_POR_PEDIDO"]):
+        raise ErrorPedido("El pedido ya tiene demasiados productos distintos.")
     resultado = []
     for cruda in lineas:
         try:
@@ -160,8 +170,9 @@ def _congelar_lineas(lineas: list[dict]) -> list[dict]:
             raise ErrorPedido("Hay un producto inválido.") from None
         if producto is None or not producto.disponible:
             raise ErrorPedido("Todos los productos deben estar disponibles.")
-        if cantidad < 1 or cantidad > 50:
-            raise ErrorPedido("La cantidad debe estar entre 1 y 50.")
+        max_cantidad = int(current_app.config["MAX_CANTIDAD_POR_LINEA"])
+        if cantidad < 1 or cantidad > max_cantidad:
+            raise ErrorPedido(f"La cantidad debe estar entre 1 y {max_cantidad}.")
         resultado.append(
             {
                 "producto_id": producto.id,

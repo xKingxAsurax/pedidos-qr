@@ -44,9 +44,10 @@ MENU_DEMO = (
 )
 
 
-def cargar_demo() -> None:
+def cargar_demo(modo_demo: bool | None = None) -> None:
     """Carga el menú de ejemplo solo si la base todavía no tiene categorías."""
-    modo_demo = os.environ.get("MODO_DEMO", "1") == "1"
+    if modo_demo is None:
+        modo_demo = os.environ.get("MODO_DEMO", "0") == "1"
     if Categoria.query.first() is not None:
         if Usuario.query.first() is None:
             if modo_demo:

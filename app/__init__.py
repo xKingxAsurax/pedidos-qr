@@ -84,7 +84,7 @@ def create_app(config_object=None) -> Flask:
         db.create_all()
         from app.seed import cargar_demo
 
-        cargar_demo()
+        cargar_demo(modo_demo=app.config.get("MODO_DEMO", False))
         print("Base lista.")
 
     return app

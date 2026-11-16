@@ -1,13 +1,93 @@
 {% extends "base.html" %}
 {% block titulo %}Administración · {{ nombre_restaurante }}{% endblock %}
 {% block contenido %}
-  <header class="site-header"><div class="site-header-inner"><div><p class="eyebrow">Administrador</p><h1>{{ nombre_restaurante }}</h1></div><form method="post" action="{{ url_for('personal.logout') }}">{% include "_csrf.html" %}<button class="button button-secondary button-small">Cerrar sesión</button></form></div></header>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div><p class="eyebrow">Administrador</p><h1>{{ nombre_restaurante }}</h1></div>
+      <form method="post" action="{{ url_for('personal.logout') }}">
+        {% include "_csrf.html" %}<button class="button button-secondary button-small">Cerrar sesión</button>
+      </form>
+    </div>
+  </header>
   <main class="page">
     <div style="display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
-      <section class="card" style="padding:20px"><h2>Nuevo producto</h2><form style="display:grid; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.producto') }}">{% include "_csrf.html" %}<input class="search" name="nombre" placeholder="Nombre" required><input class="search" name="descripcion" placeholder="Descripción"><input class="search" name="precio_cop" type="number" min="0" placeholder="Precio COP" required><select class="search" name="categoria_id">{% for categoria in categorias %}<option value="{{ categoria.id }}">{{ categoria.nombre }}</option>{% endfor %}</select><button class="button button-primary">Crear producto</button></form></section>
-      <section class="card" style="padding:20px"><h2>Productos</h2>{% for categoria in categorias %}<h3 style="margin-top:12px">{{ categoria.nombre }}</h3>{% for producto in categoria.productos %}<div class="cart-line-header" style="padding:8px 0"><span>{{ producto.nombre }} · {{ producto.precio_cop|cop }}</span><form method="post" action="{{ url_for('admin.disponibilidad', producto_id=producto.id) }}">{% include "_csrf.html" %}<button class="button button-small {% if producto.disponible %}button-primary{% else %}button-secondary{% endif %}">{{ "Disponible" if producto.disponible else "Agotado" }}</button></form></div>{% endfor %}{% endfor %}</section>
-      <section class="card" style="padding:20px"><h2>Mesas y QR</h2><form style="display:flex; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.mesa') }}">{% include "_csrf.html" %}<input class="search" name="numero" type="number" min="1" placeholder="Número"><button class="button button-primary">Crear</button></form>{% for mesa in mesas %}<div class="cart-line-header" style="padding:8px 0"><span>Mesa {{ mesa.numero }}</span><span><a href="{{ url_for('admin.imprimir_qr', mesa_id=mesa.id) }}" target="_blank">Imprimir QR</a> · <a href="{{ url_for('admin.qr_mesa', mesa_id=mesa.id) }}" download>PNG</a> · <form style="display:inline" method="post" action="{{ url_for('admin.activar_mesa', mesa_id=mesa.id) }}">{% include "_csrf.html" %}<button class="link-button">{{ "Desactivar" if mesa.activa else "Activar" }}</button></form></span></div>{% endfor %}</section>
-      <section class="card" style="padding:20px"><h2>Usuarios</h2><form style="display:grid; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.usuario') }}">{% include "_csrf.html" %}<input class="search" name="correo" type="email" placeholder="Correo" required><input class="search" name="password" type="password" minlength="10" placeholder="Contraseña" required><select class="search" name="rol"><option>caja</option><option>mesero</option><option>admin</option></select><button class="button button-primary">Crear usuario</button></form>{% for usuario in usuarios %}<p style="margin-top:8px">{{ usuario.usuario }} · {{ usuario.rol }}</p>{% endfor %}</section>
+      <section class="card" style="padding:20px">
+        <h2>Categorías</h2>
+        <form style="display:grid; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.categoria') }}">
+          {% include "_csrf.html" %}
+          <input class="search" name="nombre" placeholder="Nueva categoría" maxlength="80" required>
+          <input class="search" name="orden" type="number" value="0" placeholder="Orden">
+          <button class="button button-primary">Crear categoría</button>
+        </form>
+        {% for categoria in categorias %}
+          <form style="display:grid; grid-template-columns:1fr 80px auto; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.editar_categoria', categoria_id=categoria.id) }}">
+            {% include "_csrf.html" %}
+            <input class="search" style="margin:0" name="nombre" value="{{ categoria.nombre }}" maxlength="80" required aria-label="Nombre de categoría">
+            <input class="search" style="margin:0" name="orden" type="number" value="{{ categoria.orden }}" aria-label="Orden">
+            <button class="button button-secondary button-small">Guardar</button>
+          </form>
+        {% endfor %}
+      </section>
+
+      <section class="card" style="padding:20px">
+        <h2>Nuevo producto</h2>
+        <form style="display:grid; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.producto') }}">
+          {% include "_csrf.html" %}
+          <input class="search" name="nombre" placeholder="Nombre" maxlength="120" required>
+          <input class="search" name="descripcion" placeholder="Descripción" maxlength="2000">
+          <input class="search" name="precio_cop" type="number" min="0" placeholder="Precio COP" required>
+          <select class="search" name="categoria_id" required>
+            {% for categoria in categorias %}<option value="{{ categoria.id }}">{{ categoria.nombre }}</option>{% endfor %}
+          </select>
+          <button class="button button-primary">Crear producto</button>
+        </form>
+      </section>
+
+      <section class="card" style="padding:20px">
+        <h2>Productos</h2>
+        {% for categoria in categorias %}
+          <h3 style="margin-top:16px">{{ categoria.nombre }}</h3>
+          {% for producto in categoria.productos %}
+            <form style="display:grid; gap:8px; padding:12px 0; border-bottom:1px solid var(--border)" method="post" action="{{ url_for('admin.editar_producto', producto_id=producto.id) }}">
+              {% include "_csrf.html" %}
+              <input class="search" style="margin:0" name="nombre" value="{{ producto.nombre }}" maxlength="120" required aria-label="Nombre del producto">
+              <input class="search" style="margin:0" name="descripcion" value="{{ producto.descripcion }}" maxlength="2000" aria-label="Descripción">
+              <div style="display:flex; gap:8px">
+                <input class="search" style="margin:0" name="precio_cop" type="number" min="0" value="{{ producto.precio_cop }}" required aria-label="Precio en pesos">
+                <select class="search" style="margin:0" name="categoria_id" aria-label="Categoría">
+                  {% for opcion in categorias %}<option value="{{ opcion.id }}" {% if opcion.id == producto.categoria_id %}selected{% endif %}>{{ opcion.nombre }}</option>{% endfor %}
+                </select>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center">
+                <button class="button button-secondary button-small">Guardar cambios</button>
+                <button class="button button-small {% if producto.disponible %}button-primary{% else %}button-secondary{% endif %}" type="submit" formaction="{{ url_for('admin.disponibilidad', producto_id=producto.id) }}" formmethod="post">{{ "Disponible" if producto.disponible else "Agotado" }}</button>
+              </div>
+            </form>
+          {% endfor %}
+        {% endfor %}
+      </section>
+
+      <section class="card" style="padding:20px">
+        <h2>Mesas y QR</h2>
+        <form style="display:flex; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.mesa') }}">
+          {% include "_csrf.html" %}<input class="search" name="numero" type="number" min="1" placeholder="Número" required><button class="button button-primary">Crear</button>
+        </form>
+        {% for mesa in mesas %}
+          <div class="cart-line-header" style="padding:8px 0">
+            <span>Mesa {{ mesa.numero }}</span>
+            <span><a href="{{ url_for('admin.imprimir_qr', mesa_id=mesa.id) }}" target="_blank" rel="noopener">Imprimir QR</a> · <a href="{{ url_for('admin.qr_mesa', mesa_id=mesa.id) }}" download>PNG</a> · <form style="display:inline" method="post" action="{{ url_for('admin.activar_mesa', mesa_id=mesa.id) }}">{% include "_csrf.html" %}<button class="link-button">{{ "Desactivar" if mesa.activa else "Activar" }}</button></form></span>
+          </div>
+        {% endfor %}
+      </section>
+
+      <section class="card" style="padding:20px">
+        <h2>Usuarios</h2>
+        <form style="display:grid; gap:8px; margin-top:12px" method="post" action="{{ url_for('admin.usuario') }}">
+          {% include "_csrf.html" %}<input class="search" name="correo" type="email" placeholder="Correo" required><input class="search" name="password" type="password" minlength="10" placeholder="Contraseña" required>
+          <select class="search" name="rol"><option>caja</option><option>mesero</option><option>admin</option></select><button class="button button-primary">Crear usuario</button>
+        </form>
+        {% for usuario in usuarios %}<p style="margin-top:8px">{{ usuario.usuario }} · {{ usuario.rol }}</p>{% endfor %}
+      </section>
     </div>
   </main>
 {% endblock %}
